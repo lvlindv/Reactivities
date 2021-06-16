@@ -39,6 +39,17 @@ namespace API
             {
                 opt.UseSqlite(_config.GetConnectionString("DefaultConnection"));
             });
+
+            // added beacuse our client is requesting resources from diffrent domains. 
+            // Api is running on 5000. 
+            services.AddCors(opt =>
+            {
+                opt.AddPolicy("CorsPolicy", policy =>
+                {
+                    // specifie wuth the url where our client app is running from. 
+                    policy.AllowAnyMethod().AllowAnyHeader().WithOrigins("http://localhost:3000");
+                });
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -54,6 +65,8 @@ namespace API
             //app.UseHttpsRedirection();
 
             app.UseRouting();
+            // add as middleware so our app resondes to the request. 
+            app.UseCors("CorsPolicy");
 
             app.UseAuthorization();
 
