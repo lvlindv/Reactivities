@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
+using Application.Activities;
 using Domain;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Persistence;
@@ -9,14 +12,16 @@ using Persistence;
 namespace API.Controllers
 {
     public class ActivitiesController : BaseApiController
-    {        
+    {
         // Gets acess of datacontext inside ActivitiesController
-        private readonly DataContext _context;
+        // private readonly DataContext _context;
         // inject datacontext into the controller so we can query our database directly
         // and return the activities to the client
-        public ActivitiesController(DataContext context)
+        private readonly IMediator _mediator;
+        public ActivitiesController(IMediator mediator)
         {
-            _context = context;
+            this._mediator = mediator;
+
         }
 
         // Endpoint
@@ -25,7 +30,8 @@ namespace API.Controllers
         public async Task<ActionResult<List<Activity>>> GetActivities()
         {
             // return our activities DbSet and get a List of this
-            return await _context.Activities.ToListAsync();
+            //return await _context.Activities.ToListAsync();
+            return await Mediator.Send(new List.Query());
         }
 
         // To select an individually activity
@@ -33,8 +39,28 @@ namespace API.Controllers
         [HttpGet("{id}")] // activities/id
         public async Task<ActionResult<Activity>> GetActivity(Guid id)
         {
-            return await _context.Activities.FindAsync(id);
+            return await Mediator.Send(new Details.Query{Id = id});
         }
 
+        [HttpPost]
+        public async Task<IActionResult> CreateActivity(Activity activity)
+        {
+            return Ok(await Mediator.Send(new Create.command {Activity = activity}));
+        } 
+
+        // {id} comes from the "root parameter" 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> EditActivity(Guid id, Activity activity)
+        {
+            activity.Id = id;
+            return Ok(await Mediator.Send(new Edit.Command{Activity = activity}));
+        }
+
+        // "{id}") is the root-parameter
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteActivity(Guid id)
+        {
+            return Ok(await Mediator.Send(new Delete.Command{Id =id}));
+        }
     }
-}
+} 
